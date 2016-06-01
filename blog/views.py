@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
-from .models import Post
-from .forms import PostForm
+from .models import Post, Comment
+from .forms import PostForm, CommentForm
 
 
 def post_list(request):
@@ -79,3 +79,35 @@ def post_delete(request, pk):
 	post = get_object_or_404(Post, pk=pk)
 	post.delete()
 	return redirect('blog:post_list')
+
+
+def add_comment_to_post(request, pk):
+	post = get_object_or_404(Post, pk=pk)
+	if request.method == "POST":
+		form  = CommentForm(request.POST)
+		if form.is_valid():
+			comment = form.save(commit=False)
+			comment.post = post
+			comment.save()
+			return redirect('blog:post_detail', pk=post.pk)
+	else:
+		form = CommentForm()
+	context = {
+		'form': form,
+	}
+	return render(request, 'blog/add_comment_to_post.html', context)
+
+
+@login_required
+def comment_approve(request, pk):
+	comment = get_object_or_404(Comment, pk=pk)
+	comment.approve()
+	return redirect('blog:post_detail', pk=comment.post.pk)
+
+
+@login_required
+def comment_delete(request, pk):
+	comment = get_object_or_404(Comment, pk=pk)
+	post_pk = comment.post.pk
+	comment.delete()
+	return redirect('blog:post_detail', pk=post_pk)
